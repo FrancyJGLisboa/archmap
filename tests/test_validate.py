@@ -238,6 +238,7 @@ def _git_head(root):
 def make_repo_rewrite(tmp_path, data):
     """Rewrite json+html in an existing fixture tree with new data."""
     out = tmp_path / "docs" / "architecture"
+    out.mkdir(parents=True, exist_ok=True)
     (out / "architecture.json").write_text(json.dumps(data, indent=2))
     (out / "architecture.html").write_text(
         '<!doctype html><html><body><script id="archmap-data" '
@@ -266,6 +267,37 @@ def test_stale_sha_fails(tmp_path):
     r = run_validate(jp, tmp_path)
     assert r.returncode == 1
     assert "stale" in r.stdout
+
+
+def _single_dir_data_and_tree(tmp_path, extra_unclaimed_subdir=False):
+    """Repo with ONE top-level source dir 'app' containing subdirs."""
+    data = good_data()
+    paths = ["app/cli/main.py", "app/cli/helpers.py", "app/core/api.py",
+             "app/core/store.py", "app/core/app.py"]
+    for comp, pth in zip(data["components"], paths):
+        comp["path"] = pth
+    for pth in paths:
+        p = tmp_path / pth
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("# stub\n")
+    if extra_unclaimed_subdir:
+        d = tmp_path / "app" / "web"
+        d.mkdir()
+        (d / "x.py").write_text("# stub\n")
+    return make_repo_rewrite(tmp_path, data)
+
+
+def test_single_top_dir_descends_and_fails_on_unclaimed_subdirs(tmp_path):
+    jp = _single_dir_data_and_tree(tmp_path, extra_unclaimed_subdir=True)
+    r = run_validate(jp, tmp_path, "--no-git")
+    assert r.returncode == 1
+    assert "coverage" in r.stdout and "web" in r.stdout
+
+
+def test_single_top_dir_full_subdir_coverage_passes(tmp_path):
+    jp = _single_dir_data_and_tree(tmp_path)
+    r = run_validate(jp, tmp_path, "--no-git")
+    assert r.returncode == 0, r.stdout
 
 
 VIEWER = VALIDATE.parent.parent / "assets" / "viewer.html"

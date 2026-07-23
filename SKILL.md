@@ -39,13 +39,16 @@ directory). Shape:
 - `archmap_version`: `"1"`
 - `name`, `description`
 - `generated`: `{commit_sha, branch, date, tool_version}` — commit_sha MUST
-  be the current `git rev-parse HEAD` of the target repo
+  be the current `git rev-parse HEAD` of the target repo; `date` is
+  `YYYY-MM-DD`; `tool_version` is the skill version, e.g. `"archmap 1"`
 - `layers[]`: `{id, name, order}` — rendered as columns, left to right
 - `components[]`: `{id, name, layer, path, description, tech, dependencies[]}`
   — `path` is repo-relative and MUST exist; never `"."`
-- `external_services[]`: `{id, name, description, url}`
+- `external_services[]`: `{id, name, description, url}` — description and
+  url optional
 - `flows[]`: `{id, name, description, steps[{from, to, label}]}` — from/to
-  reference component or external-service ids
+  reference component or external-service ids; failure/fallback edges are
+  allowed as steps, just label them (e.g. `"raises SourceUnavailable"`)
 - `entry_points[]`: `{component, description}`
 - `x_extensions`: free-form object for anything domain-specific
 
@@ -53,7 +56,7 @@ directory). Shape:
 
 If this runtime can execute scripts, run (from the target repo root):
 
-    python3 <skill-dir>/scripts/validate.py docs/architecture/
+    python3 <skill-dir>/scripts/validate.py docs/architecture/ --root .
 
 Fix every FAIL and re-run until it prints `OK`.
 
@@ -65,9 +68,12 @@ If scripts cannot run here, self-check the SAME rules inline:
   every component's layer is declared
 - every `component.path` exists on disk; no `"."`, no absolute paths, no `..`
 - >= 80% of top-level source directories (ignore docs/tests/build/vendor
-  dirs) are claimed by some component path
+  dirs) are claimed by some component path; when there is exactly ONE
+  top-level source dir, the same rule applies one level down — single-package
+  repos don't get a free pass from one catch-all component
 - `generated.commit_sha` equals current `git rev-parse HEAD`
-- the HTML data block byte-matches the JSON (step 4)
+- the HTML data block parses to exactly the same data as the JSON
+  (parsed equality, not byte equality)
 
 ### 4. Render `docs/architecture/architecture.html`
 

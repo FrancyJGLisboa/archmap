@@ -90,21 +90,35 @@ def check_paths(data: dict, root: Path) -> None:
 
 
 def check_coverage(data: dict, root: Path) -> None:
-    src_dirs = {
-        d.name for d in root.iterdir()
-        if d.is_dir() and not d.name.startswith(".") and d.name not in NON_SOURCE_DIRS
-    }
-    if not src_dirs:
+    # ponytail: descend max 3 levels so single-package repos (pkg/ or src/pkg/)
+    # don't get a free 100% from one catch-all top dir
+    comp_paths = [Path(c["path"]) for c in data["components"]]
+    base_parts: tuple = ()
+    base = root
+    for _ in range(3):
+        src_dirs = {
+            d.name for d in base.iterdir()
+            if d.is_dir() and not d.name.startswith(".") and d.name not in NON_SOURCE_DIRS
+        }
+        if not src_dirs:
+            return
+        depth = len(base_parts)
+        claimed = {
+            p.parts[depth] for p in comp_paths
+            if len(p.parts) > depth and p.parts[:depth] == base_parts
+            and p.parts[depth] in src_dirs
+        }
+        if len(src_dirs) == 1 and claimed == src_dirs:
+            only = next(iter(src_dirs))
+            base_parts = base_parts + (only,)
+            base = base / only
+            continue
+        ratio = len(claimed) / len(src_dirs)
+        if ratio < COVERAGE_THRESHOLD:
+            where = "/".join(base_parts) or "repo root"
+            fail(f"coverage {ratio:.0%} < {COVERAGE_THRESHOLD:.0%} at {where} — "
+                 f"unclaimed dirs: {sorted(src_dirs - claimed)}")
         return
-    claimed = {
-        Path(c["path"]).parts[0]
-        for c in data["components"]
-        if Path(c["path"]).parts[0] in src_dirs
-    }
-    ratio = len(claimed) / len(src_dirs)
-    if ratio < COVERAGE_THRESHOLD:
-        fail(f"coverage {ratio:.0%} < {COVERAGE_THRESHOLD:.0%} — "
-             f"unclaimed top-level dirs: {sorted(src_dirs - claimed)}")
 
 
 def check_html(data: dict, html_path: Path) -> None:
