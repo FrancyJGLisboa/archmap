@@ -187,3 +187,81 @@ def test_non_source_dirs_ignored_by_coverage(tmp_path):
         (tmp_path / ignored).mkdir()
     r = run_validate(jp, tmp_path, "--no-git")
     assert r.returncode == 0, r.stdout
+
+
+def test_missing_html_fails(tmp_path):
+    jp = make_repo(tmp_path)
+    (jp.parent / "architecture.html").unlink()
+    r = run_validate(jp, tmp_path, "--no-git")
+    assert r.returncode == 1
+    assert "html" in r.stdout.lower()
+
+
+def test_tampered_embedded_json_fails(tmp_path):
+    jp = make_repo(tmp_path)
+    html = jp.parent / "architecture.html"
+    other = good_data()
+    other["name"] = "tampered"
+    html.write_text(
+        '<!doctype html><html><body><script id="archmap-data" '
+        'type="application/json">' + json.dumps(other) + "</script></body></html>"
+    )
+    r = run_validate(jp, tmp_path, "--no-git")
+    assert r.returncode == 1
+    assert "differs" in r.stdout
+
+
+def test_external_resource_in_html_fails(tmp_path):
+    jp = make_repo(tmp_path)
+    html = jp.parent / "architecture.html"
+    html.write_text(html.read_text().replace(
+        "<body>", '<body><script src="https://cdn.example.com/x.js"></script>'))
+    r = run_validate(jp, tmp_path, "--no-git")
+    assert r.returncode == 1
+    assert "external" in r.stdout
+
+
+def _git(root, *args):
+    subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True,
+                   env={"PATH": "/usr/bin:/bin:/usr/local/bin",
+                        "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+                        "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
+                        "HOME": str(root)})
+
+
+def _git_head(root):
+    return subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"],
+                          capture_output=True, text=True).stdout.strip()
+
+
+def make_repo_rewrite(tmp_path, data):
+    """Rewrite json+html in an existing fixture tree with new data."""
+    out = tmp_path / "docs" / "architecture"
+    (out / "architecture.json").write_text(json.dumps(data, indent=2))
+    (out / "architecture.html").write_text(
+        '<!doctype html><html><body><script id="archmap-data" '
+        'type="application/json">' + json.dumps(data) + "</script></body></html>"
+    )
+    return out / "architecture.json"
+
+
+def test_matching_head_sha_passes(tmp_path):
+    _git(tmp_path, "init", "-b", "main")
+    make_repo(tmp_path)
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-m", "init")
+    data = good_data()
+    data["generated"]["commit_sha"] = _git_head(tmp_path)
+    jp = make_repo_rewrite(tmp_path, data)
+    r = run_validate(jp, tmp_path)
+    assert r.returncode == 0, r.stdout
+
+
+def test_stale_sha_fails(tmp_path):
+    _git(tmp_path, "init", "-b", "main")
+    jp = make_repo(tmp_path)
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-m", "init")
+    r = run_validate(jp, tmp_path)
+    assert r.returncode == 1
+    assert "stale" in r.stdout
