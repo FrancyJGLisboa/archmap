@@ -287,6 +287,22 @@ def test_viewer_template_no_external_resources():
     assert not re.search(r'\b(?:src|href)\s*=\s*["\']https?://', stripped)
 
 
+def test_checks_yaml_goodhart_format():
+    text = (VALIDATE.parent.parent / "eval" / "checks.yaml").read_text()
+    assert "checks:" in text and "holdout:" in text
+    n_check = text.count("- check:")
+    assert n_check >= 5
+    assert text.count("false_pass:") == n_check
+    assert text.count("mitigation:") == n_check
+
+
+def test_skill_md_restates_validator_thresholds():
+    text = (VALIDATE.parent.parent / "SKILL.md").read_text()
+    for needle in (">= 5 components", ">= 2 flows", "80%", "rev-parse HEAD",
+                   "archmap-data", "commit_sha"):
+        assert needle in text, f"SKILL.md missing: {needle}"
+
+
 def test_injected_viewer_passes_validator(tmp_path):
     data = good_data()
     jp = make_repo(tmp_path, data)

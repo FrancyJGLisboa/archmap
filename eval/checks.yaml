@@ -1,0 +1,18 @@
+# archmap loss function — goodhart-gate format
+checks:
+  - check: architecture.json passes scripts/validate.py (schema v1, exit 0)
+    false_pass: agent emits minimal-but-valid JSON (2 components, no flows)
+    mitigation: validator enforces >=5 components, >=2 flows, every flow step references a declared id
+  - check: every component.path exists on disk in the target repo
+    false_pass: agent invents plausible paths
+    mitigation: validator stats each path; nonexistent path = hard fail (provenance over assertion)
+  - check: viewer HTML renders offline and embedded JSON equals architecture.json
+    false_pass: agent hardcodes demo data into the HTML
+    mitigation: validator extracts the embedded block and diffs it against the .json file
+  - check: coverage >=80% of top-level source dirs claimed by some component.path
+    false_pass: one catch-all component with path "."
+    mitigation: validator rejects "." / absolute / parent-traversal paths and counts distinct claimed dirs
+  - check: generated.commit_sha equals repo HEAD at generation time
+    false_pass: agent copies a stale SHA from an old run
+    mitigation: validator compares against live `git rev-parse HEAD`
+holdout: run the finished skill on ~/noticiasagricolasbr, a repo never used during the build loop, and Francy eyeballs the rendered HTML — never automated, never trained against
