@@ -21,17 +21,58 @@ tells consuming agents to `git diff` against it before trusting anything.
 
 ## Install
 
+No hooks, no Node, no dependencies — archmap is a pure skill plus one
+stdlib-Python validator. On runtimes that can't execute scripts at all, it
+degrades gracefully: the validation rules are restated in prose inside
+`SKILL.md` and the agent self-checks them.
+
 **Claude Code**
-```bash
-git clone https://github.com/FrancyJGLisboa/archmap ~/.claude/skills/archmap
+```
+/plugin marketplace add FrancyJGLisboa/archmap
+/plugin install archmap@archmap
+```
+(send the two commands as two separate prompts)
+
+Same steps in the Claude Code Desktop app's Code tab, or use the **+** button
+→ Plugins → Add plugin.
+
+**Codex**
+```
+codex plugin marketplace add FrancyJGLisboa/archmap
+codex plugin add archmap@archmap
+```
+Nothing to trust in `/hooks` — archmap ships none.
+
+**GitHub Copilot CLI**
+```
+copilot plugin marketplace add FrancyJGLisboa/archmap
+copilot plugin install archmap@archmap
+```
+Or the `/plugin` slash equivalents in an interactive session. Copilot
+namespaces by plugin, so the skill invokes as `/archmap:archmap`.
+
+**Pi agent harness**
+```
+pi install git:github.com/FrancyJGLisboa/archmap
 ```
 
-**GitHub Copilot CLI / Cursor / Codex / others**
-Clone anywhere, then point your rules file (`AGENTS.md`, `.cursor/rules`,
-`.github/copilot-instructions.md`, …) at `SKILL.md` — or paste `SKILL.md`
-into context. On runtimes that can't execute scripts, the skill degrades
-gracefully: the validation rules are restated in prose and the agent
-self-checks them.
+**Gemini CLI**
+```
+gemini extensions install https://github.com/FrancyJGLisboa/archmap
+```
+Loads `AGENTS.md` as session context; the skill itself ships in `skills/`.
+
+**OpenCode**
+No plugin to install (archmap has no hooks). Clone the repo and point your
+project's `AGENTS.md` at `<checkout>/skills/archmap/SKILL.md` — OpenCode
+auto-loads `AGENTS.md`, so the skill activates from context alone.
+
+**Manual, any runtime**
+```bash
+git clone https://github.com/FrancyJGLisboa/archmap
+ln -s "$PWD/archmap/skills/archmap" ~/.claude/skills/archmap   # or your runtime's skills dir
+```
+Or just paste `skills/archmap/SKILL.md` into context.
 
 ## Use
 
@@ -46,19 +87,19 @@ To consume an existing map safely:
 
 ## Enforcement, not vibes
 
-`scripts/validate.py` (Python 3 stdlib, no dependencies) hard-fails maps that
-try to cheat:
+`skills/archmap/scripts/validate.py` (Python 3 stdlib, no dependencies)
+hard-fails maps that try to cheat:
 
 | Check | Blocks |
 |---|---|
 | Schema v1, ≥5 components, ≥2 flows, no dangling ids | minimal-but-valid stubs |
 | Every `component.path` exists on disk | invented paths |
-| ≥80% of top-level source dirs claimed; `"."` forbidden | catch-all components |
+| ≥80% of source dirs claimed (descends into single-package repos); `"."` forbidden | catch-all components |
 | HTML data block equals the JSON; no external resources | hardcoded demo HTML |
 | `generated.commit_sha` == live `git rev-parse HEAD` | stale maps |
 
 ```bash
-python3 scripts/validate.py docs/architecture/ --root .
+python3 skills/archmap/scripts/validate.py docs/architecture/ --root .
 ```
 
 The full loss function, including how each check could be gamed and what
@@ -72,10 +113,10 @@ prevents it, is in [`eval/checks.yaml`](eval/checks.yaml).
 
 ## Files
 
-- [`SKILL.md`](SKILL.md) — the skill (producer + consumer paths)
-- [`schema/architecture.schema.json`](schema/architecture.schema.json) — JSON Schema v1
-- [`assets/viewer.html`](assets/viewer.html) — viewer template
-- [`scripts/validate.py`](scripts/validate.py) — validator
+- [`skills/archmap/SKILL.md`](skills/archmap/SKILL.md) — the skill (producer + consumer paths)
+- [`skills/archmap/schema/architecture.schema.json`](skills/archmap/schema/architecture.schema.json) — JSON Schema v1
+- [`skills/archmap/assets/viewer.html`](skills/archmap/assets/viewer.html) — viewer template
+- [`skills/archmap/scripts/validate.py`](skills/archmap/scripts/validate.py) — validator
 - [`eval/checks.yaml`](eval/checks.yaml) — loss function
 
 ## License

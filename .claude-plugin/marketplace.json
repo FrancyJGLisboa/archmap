@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "archmap",
+  "description": "Map any codebase into architecture.json (for agents) + architecture.html (for humans). The map is a cache with a cache key, not gospel.",
+  "owner": {
+    "name": "Francy Lisboa",
+    "url": "https://github.com/FrancyJGLisboa"
+  },
+  "plugins": [
+    {
+      "name": "archmap",
+      "description": "Two artifacts, one source of truth: a schema-v1 architecture.json the next agent can program against, and a self-contained interactive HTML viewer rendered from it — with staleness checking built in.",
+      "source": "./",
+      "category": "documentation"
+    }
+  ]
+}

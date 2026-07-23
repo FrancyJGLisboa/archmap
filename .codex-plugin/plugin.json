@@ -1,0 +1,21 @@
+{
+  "name": "archmap",
+  "version": "1.0.0",
+  "description": "Map any codebase into architecture.json (fixed schema v1, for the next agent) + architecture.html (self-contained interactive viewer, for humans), with built-in staleness checking against the generating commit.",
+  "author": {
+    "name": "Francy Lisboa",
+    "url": "https://github.com/FrancyJGLisboa"
+  },
+  "homepage": "https://github.com/FrancyJGLisboa/archmap",
+  "repository": "https://github.com/FrancyJGLisboa/archmap",
+  "license": "MIT",
+  "keywords": ["architecture", "documentation", "codebase-map", "agent-skill"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "archmap",
+    "shortDescription": "Codebase architecture mapper",
+    "longDescription": "Produces docs/architecture/architecture.json (schema v1, machine-readable) and architecture.html (interactive viewer) from any repo, validated so the map can't lie: paths must exist, coverage is enforced, and the map records the git commit it was generated at.",
+    "developerName": "Francy Lisboa",
+    "category": "Documentation"
+  }
+}

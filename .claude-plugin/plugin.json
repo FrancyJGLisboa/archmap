@@ -1,0 +1,9 @@
+{
+  "name": "archmap",
+  "version": "1.0.0",
+  "description": "Map any codebase into architecture.json (fixed schema v1, for the next agent) + architecture.html (self-contained interactive viewer, for humans), with built-in staleness checking against the generating commit.",
+  "author": {
+    "name": "Francy Lisboa",
+    "url": "https://github.com/FrancyJGLisboa"
+  }
+}

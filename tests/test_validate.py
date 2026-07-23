@@ -5,7 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-VALIDATE = Path(__file__).resolve().parent.parent / "scripts" / "validate.py"
+SKILL_DIR = Path(__file__).resolve().parent.parent / "skills" / "archmap"
+VALIDATE = SKILL_DIR / "scripts" / "validate.py"
 
 
 def good_data():
@@ -300,7 +301,7 @@ def test_single_top_dir_full_subdir_coverage_passes(tmp_path):
     assert r.returncode == 0, r.stdout
 
 
-VIEWER = VALIDATE.parent.parent / "assets" / "viewer.html"
+VIEWER = SKILL_DIR / "assets" / "viewer.html"
 DATA_BLOCK_RE = re.compile(
     r'<script id="archmap-data" type="application/json">(.*?)</script>', re.S
 )
@@ -320,7 +321,7 @@ def test_viewer_template_no_external_resources():
 
 
 def test_checks_yaml_goodhart_format():
-    text = (VALIDATE.parent.parent / "eval" / "checks.yaml").read_text()
+    text = (SKILL_DIR.parent.parent / "eval" / "checks.yaml").read_text()
     assert "checks:" in text and "holdout:" in text
     n_check = text.count("- check:")
     assert n_check >= 5
@@ -329,7 +330,7 @@ def test_checks_yaml_goodhart_format():
 
 
 def test_skill_md_restates_validator_thresholds():
-    text = (VALIDATE.parent.parent / "SKILL.md").read_text()
+    text = (SKILL_DIR / "SKILL.md").read_text()
     for needle in (">= 5 components", ">= 2 flows", "80%", "rev-parse HEAD",
                    "archmap-data", "commit_sha"):
         assert needle in text, f"SKILL.md missing: {needle}"
