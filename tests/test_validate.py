@@ -141,3 +141,49 @@ def test_unknown_layer_fails(tmp_path):
     r = run_validate(jp, tmp_path, "--no-git")
     assert r.returncode == 1
     assert "nope" in r.stdout
+
+
+def test_nonexistent_path_fails(tmp_path):
+    data = good_data()
+    data["components"][0]["path"] = "cli/ghost.py"
+    jp = make_repo(tmp_path, data)
+    r = run_validate(jp, tmp_path, "--no-git")
+    assert r.returncode == 1
+    assert "ghost.py" in r.stdout
+
+
+def test_dot_path_fails(tmp_path):
+    data = good_data()
+    data["components"][0]["path"] = "."
+    jp = make_repo(tmp_path, data)
+    r = run_validate(jp, tmp_path, "--no-git")
+    assert r.returncode == 1
+    assert "forbidden path" in r.stdout
+
+
+def test_parent_traversal_path_fails(tmp_path):
+    data = good_data()
+    data["components"][0]["path"] = "../outside.py"
+    jp = make_repo(tmp_path, data)
+    r = run_validate(jp, tmp_path, "--no-git")
+    assert r.returncode == 1
+    assert "forbidden path" in r.stdout
+
+
+def test_unclaimed_source_dir_fails_coverage(tmp_path):
+    jp = make_repo(tmp_path)
+    for extra in ("web", "worker", "jobs"):
+        d = tmp_path / extra
+        d.mkdir()
+        (d / "x.py").write_text("# stub\n")
+    r = run_validate(jp, tmp_path, "--no-git")
+    assert r.returncode == 1
+    assert "coverage" in r.stdout
+
+
+def test_non_source_dirs_ignored_by_coverage(tmp_path):
+    jp = make_repo(tmp_path)
+    for ignored in ("node_modules", "dist", ".hidden"):
+        (tmp_path / ignored).mkdir()
+    r = run_validate(jp, tmp_path, "--no-git")
+    assert r.returncode == 0, r.stdout
