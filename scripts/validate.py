@@ -23,23 +23,23 @@ DATA_BLOCK_RE = re.compile(
 )
 
 
-def fail(msg):
+def fail(msg: str) -> None:
     print(f"FAIL: {msg}")
     sys.exit(1)
 
 
-def warn(msg):
+def warn(msg: str) -> None:
     print(f"WARN: {msg}")
 
 
-def ids_of(items, kind):
+def ids_of(items: list, kind: str) -> set:
     ids = [i.get("id") for i in items]
     if len(ids) != len(set(ids)):
         fail(f"duplicate {kind} ids")
     return set(ids)
 
 
-def check_structure(data):
+def check_structure(data: dict) -> None:
     for field in ("archmap_version", "name", "generated", "layers", "components", "flows"):
         if field not in data:
             fail(f"missing required field '{field}'")
@@ -80,7 +80,7 @@ def check_structure(data):
                     fail(f"flow {f['id']!r} step {i} references unknown id {s.get(end)!r}")
 
 
-def check_paths(data, root):
+def check_paths(data: dict, root: Path) -> None:
     for c in data["components"]:
         p = c["path"]
         if p in (".", "", "/") or p.startswith("/") or ".." in Path(p).parts:
@@ -89,7 +89,7 @@ def check_paths(data, root):
             fail(f"component {c['id']!r} path does not exist: {p}")
 
 
-def check_coverage(data, root):
+def check_coverage(data: dict, root: Path) -> None:
     src_dirs = {
         d.name for d in root.iterdir()
         if d.is_dir() and not d.name.startswith(".") and d.name not in NON_SOURCE_DIRS
@@ -107,7 +107,7 @@ def check_coverage(data, root):
              f"unclaimed top-level dirs: {sorted(src_dirs - claimed)}")
 
 
-def check_html(data, html_path):
+def check_html(data: dict, html_path: Path) -> None:
     if not html_path.exists():
         fail(f"html not found: {html_path}")
     text = html_path.read_text(encoding="utf-8")
@@ -125,7 +125,7 @@ def check_html(data, html_path):
         fail("html references external resources")
 
 
-def check_git(data, root):
+def check_git(data: dict, root: Path) -> None:
     try:
         head = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "HEAD"],
@@ -139,7 +139,7 @@ def check_git(data, root):
         fail(f"generated.commit_sha {sha[:12]} != HEAD {head[:12]} — map is stale, regenerate")
 
 
-def main():
+def main() -> None:
     ap = argparse.ArgumentParser(description="Validate archmap artifacts.")
     ap.add_argument("json_path", type=Path, help="architecture.json (or its directory)")
     ap.add_argument("--root", type=Path, default=Path("."), help="target repo root")
