@@ -1,0 +1,157 @@
+{
+  "archmap_version": "1",
+  "name": "yt2md",
+  "description": "Extract YouTube transcripts as Markdown with clickable timestamps \u2014 CLI over yt-dlp with batch, search, date filtering, resume and retry/backoff.",
+  "generated": {
+    "commit_sha": "9dbacbac13bfb43c3289edc5b6ecdf283e0cea0d",
+    "branch": "master",
+    "date": "2026-07-23",
+    "tool_version": "archmap 0.1.0"
+  },
+  "layers": [
+    {
+      "id": "interface",
+      "name": "Interface",
+      "order": 1
+    },
+    {
+      "id": "core",
+      "name": "Core",
+      "order": 2
+    },
+    {
+      "id": "data",
+      "name": "Data & QA",
+      "order": 3
+    }
+  ],
+  "components": [
+    {
+      "id": "cli",
+      "name": "CLI",
+      "layer": "interface",
+      "path": "src/yt2md/cli.py",
+      "description": "Batch orchestration, search, date filtering, resume, retry/backoff.",
+      "tech": "python argparse",
+      "dependencies": [
+        "subs",
+        "render",
+        "transcripts"
+      ]
+    },
+    {
+      "id": "subs",
+      "name": "Subtitle fetcher",
+      "layer": "core",
+      "path": "src/yt2md/subs.py",
+      "description": "yt-dlp interaction: URL expansion, subtitle download, json3 parsing.",
+      "tech": "python + yt-dlp",
+      "dependencies": [
+        "youtube"
+      ]
+    },
+    {
+      "id": "render",
+      "name": "Markdown renderer",
+      "layer": "core",
+      "path": "src/yt2md/render.py",
+      "description": "Timestamps, headers, transcript paragraphs to Markdown.",
+      "tech": "python stdlib",
+      "dependencies": []
+    },
+    {
+      "id": "transcripts",
+      "name": "Transcript store",
+      "layer": "data",
+      "path": "transcripts",
+      "description": "Output directory of generated .md transcripts; also drives resume.",
+      "tech": "filesystem",
+      "dependencies": []
+    },
+    {
+      "id": "tests",
+      "name": "Test suite",
+      "layer": "data",
+      "path": "tests",
+      "description": "pytest suite over parsing and rendering.",
+      "tech": "pytest",
+      "dependencies": [
+        "subs",
+        "render"
+      ]
+    }
+  ],
+  "external_services": [
+    {
+      "id": "youtube",
+      "name": "YouTube",
+      "description": "Source of videos and auto-generated subtitles (json3), fetched via yt-dlp.",
+      "url": "https://www.youtube.com"
+    }
+  ],
+  "flows": [
+    {
+      "id": "single-video",
+      "name": "Single video \u2192 Markdown",
+      "description": "One URL in, one timestamped .md out.",
+      "steps": [
+        {
+          "from": "cli",
+          "to": "subs",
+          "label": "resolve URL, request subs"
+        },
+        {
+          "from": "subs",
+          "to": "youtube",
+          "label": "download json3 subtitles"
+        },
+        {
+          "from": "subs",
+          "to": "render",
+          "label": "parsed cues"
+        },
+        {
+          "from": "render",
+          "to": "transcripts",
+          "label": "write .md"
+        }
+      ]
+    },
+    {
+      "id": "channel-batch",
+      "name": "Channel batch with resume",
+      "description": "Expand a channel/playlist, skip already-done videos, fetch the rest with retry/backoff.",
+      "steps": [
+        {
+          "from": "cli",
+          "to": "subs",
+          "label": "expand channel /videos"
+        },
+        {
+          "from": "cli",
+          "to": "transcripts",
+          "label": "skip existing (resume)"
+        },
+        {
+          "from": "cli",
+          "to": "subs",
+          "label": "per-video fetch with backoff"
+        },
+        {
+          "from": "render",
+          "to": "transcripts",
+          "label": "write batch .md"
+        }
+      ]
+    }
+  ],
+  "entry_points": [
+    {
+      "component": "cli",
+      "description": "yt2md <url> (console script via pyproject)"
+    }
+  ],
+  "x_extensions": {
+    "notes": "yt-dlp requires a deno runtime for YouTube JS challenges; never use en.* sub-language wildcards (triggers 429)."
+  }
+}

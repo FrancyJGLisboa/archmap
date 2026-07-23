@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture Map</title>
+<style>
+:root{--bg:#f6f7f9;--panel:#fff;--ink:#1a1d21;--muted:#6a7280;--line:#d8dce2;--accent:#e8a13d}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#101216;--panel:#181b21;--ink:#e8eaed;--muted:#8b93a1;--line:#2a2f38}
+}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 ui-sans-serif,system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:18px 24px;border-bottom:1px solid var(--line)}
+header h1{margin:0;font-size:18px}
+header p{margin:4px 0 0;color:var(--muted);max-width:70ch}
+header .meta{margin-top:6px;font-size:12px;color:var(--muted);font-family:ui-monospace,monospace}
+.wrap{display:flex;align-items:stretch;min-height:calc(100vh - 92px)}
+#board{position:relative;flex:1;overflow:auto;padding:20px}
+#columns{display:flex;gap:18px;align-items:flex-start}
+.col{min-width:180px;flex:1}
+.col h2{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+.card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+      padding:8px 10px;margin-bottom:10px;transition:opacity .15s,border-color .15s}
+.card .name{font-weight:600;font-size:13px}
+.card .tech{font-size:11px;color:var(--muted)}
+.card .path{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;word-break:break-all}
+.card .desc{font-size:12px;color:var(--muted);margin-top:4px;display:none}
+.card.active .desc{display:block}
+.card.dim{opacity:.25}
+.card.active{border-color:var(--accent)}
+.badge{position:absolute;top:-8px;left:-8px;background:var(--accent);color:#1a1d21;border-radius:50%;
+       width:18px;height:18px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+#svg{position:absolute;inset:0;pointer-events:none;overflow:visible;width:100%;height:100%}
+#svg line{stroke:var(--accent);stroke-width:2;marker-end:url(#arrow)}
+aside{width:300px;border-left:1px solid var(--line);padding:16px;background:var(--panel);overflow:auto}
+aside h2{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+.flow{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:8px;cursor:pointer}
+.flow.sel{border-color:var(--accent)}
+.flow .fname{font-weight:600;font-size:13px}
+.flow .fdesc{font-size:12px;color:var(--muted)}
+#steps{margin-top:6px}
+.step{display:flex;gap:8px;font-size:12px;margin-bottom:8px}
+.step .n{flex:none;background:var(--accent);color:#1a1d21;border-radius:50%;width:18px;height:18px;
+         font-weight:700;display:flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+<script id="archmap-data" type="application/json">{
+  "archmap_version": "1",
+  "name": "yt2md",
+  "description": "Extract YouTube transcripts as Markdown with clickable timestamps \u2014 CLI over yt-dlp with batch, search, date filtering, resume and retry/backoff.",
+  "generated": {
+    "commit_sha": "9dbacbac13bfb43c3289edc5b6ecdf283e0cea0d",
+    "branch": "master",
+    "date": "2026-07-23",
+    "tool_version": "archmap 0.1.0"
+  },
+  "layers": [
+    {
+      "id": "interface",
+      "name": "Interface",
+      "order": 1
+    },
+    {
+      "id": "core",
+      "name": "Core",
+      "order": 2
+    },
+    {
+      "id": "data",
+      "name": "Data & QA",
+      "order": 3
+    }
+  ],
+  "components": [
+    {
+      "id": "cli",
+      "name": "CLI",
+      "layer": "interface",
+      "path": "src/yt2md/cli.py",
+      "description": "Batch orchestration, search, date filtering, resume, retry/backoff.",
+      "tech": "python argparse",
+      "dependencies": [
+        "subs",
+        "render",
+        "transcripts"
+      ]
+    },
+    {
+      "id": "subs",
+      "name": "Subtitle fetcher",
+      "layer": "core",
+      "path": "src/yt2md/subs.py",
+      "description": "yt-dlp interaction: URL expansion, subtitle download, json3 parsing.",
+      "tech": "python + yt-dlp",
+      "dependencies": [
+        "youtube"
+      ]
+    },
+    {
+      "id": "render",
+      "name": "Markdown renderer",
+      "layer": "core",
+      "path": "src/yt2md/render.py",
+      "description": "Timestamps, headers, transcript paragraphs to Markdown.",
+      "tech": "python stdlib",
+      "dependencies": []
+    },
+    {
+      "id": "transcripts",
+      "name": "Transcript store",
+      "layer": "data",
+      "path": "transcripts",
+      "description": "Output directory of generated .md transcripts; also drives resume.",
+      "tech": "filesystem",
+      "dependencies": []
+    },
+    {
+      "id": "tests",
+      "name": "Test suite",
+      "layer": "data",
+      "path": "tests",
+      "description": "pytest suite over parsing and rendering.",
+      "tech": "pytest",
+      "dependencies": [
+        "subs",
+        "render"
+      ]
+    }
+  ],
+  "external_services": [
+    {
+      "id": "youtube",
+      "name": "YouTube",
+      "description": "Source of videos and auto-generated subtitles (json3), fetched via yt-dlp.",
+      "url": "https://www.youtube.com"
+    }
+  ],
+  "flows": [
+    {
+      "id": "single-video",
+      "name": "Single video \u2192 Markdown",
+      "description": "One URL in, one timestamped .md out.",
+      "steps": [
+        {
+          "from": "cli",
+          "to": "subs",
+          "label": "resolve URL, request subs"
+        },
+        {
+          "from": "subs",
+          "to": "youtube",
+          "label": "download json3 subtitles"
+        },
+        {
+          "from": "subs",
+          "to": "render",
+          "label": "parsed cues"
+        },
+        {
+          "from": "render",
+          "to": "transcripts",
+          "label": "write .md"
+        }
+      ]
+    },
+    {
+      "id": "channel-batch",
+      "name": "Channel batch with resume",
+      "description": "Expand a channel/playlist, skip already-done videos, fetch the rest with retry/backoff.",
+      "steps": [
+        {
+          "from": "cli",
+          "to": "subs",
+          "label": "expand channel /videos"
+        },
+        {
+          "from": "cli",
+          "to": "transcripts",
+          "label": "skip existing (resume)"
+        },
+        {
+          "from": "cli",
+          "to": "subs",
+          "label": "per-video fetch with backoff"
+        },
+        {
+          "from": "render",
+          "to": "transcripts",
+          "label": "write batch .md"
+        }
+      ]
+    }
+  ],
+  "entry_points": [
+    {
+      "component": "cli",
+      "description": "yt2md <url> (console script via pyproject)"
+    }
+  ],
+  "x_extensions": {
+    "notes": "yt-dlp requires a deno runtime for YouTube JS challenges; never use en.* sub-language wildcards (triggers 429)."
+  }
+}</script>
+<header><h1 id="t"></h1><p id="d"></p><div class="meta" id="m"></div></header>
+<div class="wrap">
+  <div id="board">
+    <svg id="svg"><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+      markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/></marker></defs></svg>
+    <div id="columns"></div>
+  </div>
+  <aside>
+    <h2>Flows</h2><div id="flows"></div>
+    <h2 id="stepsH" hidden>Steps</h2><div id="steps"></div>
+  </aside>
+</div>
+<script>
+const data = JSON.parse(document.getElementById('archmap-data').textContent);
+const $ = id => document.getElementById(id);
+const nodeEl = {};
+let selected = null;
+
+if (data.__placeholder__) {
+  $('t').textContent = 'archmap viewer template';
+  $('d').textContent = 'No data injected yet — replace the archmap-data block with your architecture.json.';
+} else {
+  render();
+}
+
+function render() {
+  $('t').textContent = data.name;
+  $('d').textContent = data.description || '';
+  const g = data.generated || {};
+  $('m').textContent = 'generated ' + (g.date || '?') + ' @ ' +
+    String(g.commit_sha || '').slice(0, 12) + ' (' + (g.branch || '?') + ')';
+
+  const cols = $('columns');
+  const layers = [...(data.layers || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+  for (const layer of layers) {
+    const col = mkCol(layer.name);
+    for (const c of (data.components || []).filter(c => c.layer === layer.id)) {
+      col.appendChild(card(c.id, c.name, c.tech || '', c.path, c.description || ''));
+    }
+    cols.appendChild(col);
+  }
+  const ext = data.external_services || [];
+  if (ext.length) {
+    const col = mkCol('External services');
+    for (const s of ext) col.appendChild(card(s.id, s.name, '', s.url || '', s.description || ''));
+    cols.appendChild(col);
+  }
+  const flowsBox = $('flows');
+  for (const f of (data.flows || [])) {
+    const el = document.createElement('div');
+    el.className = 'flow';
+    const add = (cls, txt) => { const d = document.createElement('div'); d.className = cls; d.textContent = txt; el.appendChild(d); };
+    add('fname', f.name); add('fdesc', f.description || '');
+    el.onclick = () => selectFlow(f, el);
+    flowsBox.appendChild(el);
+  }
+}
+
+function mkCol(title) {
+  const col = document.createElement('div');
+  col.className = 'col';
+  const h = document.createElement('h2');
+  h.textContent = title;
+  col.appendChild(h);
+  return col;
+}
+
+function card(id, name, tech, path, desc) {
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.dataset.id = id;
+  const add = (cls, txt) => { if (!txt) return; const d = document.createElement('div'); d.className = cls; d.textContent = txt; el.appendChild(d); };
+  add('name', name); add('tech', tech); add('path', path); add('desc', desc);
+  nodeEl[id] = el;
+  return el;
+}
+
+function displayName(id) {
+  const hit = (data.components || []).find(c => c.id === id) ||
+              (data.external_services || []).find(s => s.id === id);
+  return hit ? hit.name : id;
+}
+
+function clearSelection() {
+  Object.values(nodeEl).forEach(el => {
+    el.classList.remove('dim', 'active');
+    const b = el.querySelector('.badge');
+    if (b) b.remove();
+  });
+  $('svg').querySelectorAll('line').forEach(l => l.remove());
+  $('steps').textContent = '';
+  $('stepsH').hidden = true;
+  document.querySelectorAll('.flow').forEach(f => f.classList.remove('sel'));
+}
+
+function selectFlow(flow, flowEl) {
+  const was = selected;
+  clearSelection();
+  if (was === flow.id) { selected = null; return; }
+  selected = flow.id;
+  flowEl.classList.add('sel');
+  const involved = new Set();
+  flow.steps.forEach(s => { involved.add(s.from); involved.add(s.to); });
+  Object.values(nodeEl).forEach(el => el.classList.add('dim'));
+  involved.forEach(id => {
+    const el = nodeEl[id];
+    if (el) { el.classList.remove('dim'); el.classList.add('active'); }
+  });
+  const stepsBox = $('steps');
+  $('stepsH').hidden = false;
+  flow.steps.forEach((s, i) => {
+    const target = nodeEl[s.to];
+    if (target && !target.querySelector('.badge')) {
+      const b = document.createElement('div');
+      b.className = 'badge';
+      b.textContent = i + 1;
+      target.appendChild(b);
+    }
+    const row = document.createElement('div');
+    row.className = 'step';
+    const n = document.createElement('div'); n.className = 'n'; n.textContent = i + 1;
+    const txt = document.createElement('div');
+    txt.textContent = displayName(s.from) + ' → ' + displayName(s.to) + (s.label ? ' — ' + s.label : '');
+    row.appendChild(n); row.appendChild(txt);
+    stepsBox.appendChild(row);
+  });
+  drawLines(flow);
+}
+
+function drawLines(flow) {
+  const svg = $('svg');
+  const board = $('board');
+  const br = board.getBoundingClientRect();
+  for (const s of flow.steps) {
+    const a = nodeEl[s.from], b = nodeEl[s.to];
+    if (!a || !b) continue;
+    const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    const leftToRight = ra.left <= rb.left;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', (leftToRight ? ra.right : ra.left) - br.left + board.scrollLeft);
+    line.setAttribute('y1', ra.top + ra.height / 2 - br.top + board.scrollTop);
+    line.setAttribute('x2', (leftToRight ? rb.left : rb.right) - br.left + board.scrollLeft);
+    line.setAttribute('y2', rb.top + rb.height / 2 - br.top + board.scrollTop);
+    svg.appendChild(line);
+  }
+}
+
+addEventListener('resize', () => {
+  const f = (data.flows || []).find(f => f.id === selected);
+  if (f) { $('svg').querySelectorAll('line').forEach(l => l.remove()); drawLines(f); }
+});
+</script>
+</body>
+</html>
