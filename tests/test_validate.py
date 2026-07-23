@@ -1,5 +1,6 @@
 """Tests for scripts/validate.py — run via: uv run --with pytest pytest tests/ -v"""
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -265,3 +266,36 @@ def test_stale_sha_fails(tmp_path):
     r = run_validate(jp, tmp_path)
     assert r.returncode == 1
     assert "stale" in r.stdout
+
+
+VIEWER = VALIDATE.parent.parent / "assets" / "viewer.html"
+DATA_BLOCK_RE = re.compile(
+    r'<script id="archmap-data" type="application/json">(.*?)</script>', re.S
+)
+
+
+def test_viewer_template_has_placeholder_block():
+    text = VIEWER.read_text(encoding="utf-8")
+    m = DATA_BLOCK_RE.search(text)
+    assert m, "viewer.html missing archmap-data block"
+    embedded = json.loads(m.group(1))
+    assert embedded.get("__placeholder__") is True
+
+
+def test_viewer_template_no_external_resources():
+    stripped = DATA_BLOCK_RE.sub("", VIEWER.read_text(encoding="utf-8"))
+    assert not re.search(r'\b(?:src|href)\s*=\s*["\']https?://', stripped)
+
+
+def test_injected_viewer_passes_validator(tmp_path):
+    data = good_data()
+    jp = make_repo(tmp_path, data)
+    template = VIEWER.read_text(encoding="utf-8")
+    injected = DATA_BLOCK_RE.sub(
+        lambda _m: '<script id="archmap-data" type="application/json">'
+        + json.dumps(data) + "</script>",
+        template,
+    )
+    (jp.parent / "architecture.html").write_text(injected)
+    r = run_validate(jp, tmp_path, "--no-git")
+    assert r.returncode == 0, r.stdout
